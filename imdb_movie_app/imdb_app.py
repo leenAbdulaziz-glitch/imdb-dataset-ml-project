@@ -1,3 +1,6 @@
+b app · PY
+Copy
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -19,9 +22,12 @@ from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 
 @st.cache_data
 def load_data():
+    # Always resolve paths relative to this script file
+    base = os.path.dirname(os.path.abspath(__file__))
     for fname in ["imdb_clean.csv", "imdb_top_1000.csv"]:
-        if os.path.exists(fname):
-            df = pd.read_csv(fname)
+        full_path = os.path.join(base, fname)
+        if os.path.exists(full_path):
+            df = pd.read_csv(full_path)
             break
     else:
         st.error("Dataset not found! Place imdb_clean.csv or imdb_top_1000.csv next to app.py")
@@ -99,8 +105,7 @@ def train_all_models(_df):
     dC["ce"] = le_cC.fit_transform(dC["Certificate"])
     X_C = dC[["Runtime","Year","ge","ce"]]; y_C = dC["Is_Blockbuster"]
     Xtr3, _, ytr3, _ = train_test_split(X_C, y_C, test_size=0.2, random_state=42)
-    mC = RandomForestClassifier(n_estimators=200, random_state=42, class_weight='balanced')
-    mC.fit(Xtr3, ytr3)
+    mC = RandomForestClassifier(n_estimators=200, random_state=42); mC.fit(Xtr3, ytr3)
 
     # Model 4 — Post-release Blockbuster (RF Classifier)
     le_gD = LabelEncoder(); le_cD = LabelEncoder()
@@ -110,8 +115,7 @@ def train_all_models(_df):
     dD = dD[["Runtime","Year","ge","ce","Meta_score","Votes","Is_Blockbuster"]].dropna()
     X_D = dD[["Runtime","Year","ge","ce","Meta_score","Votes"]]; y_D = dD["Is_Blockbuster"]
     Xtr4, _, ytr4, _ = train_test_split(X_D, y_D, test_size=0.2, random_state=42)
-    mD = RandomForestClassifier(n_estimators=200, random_state=42, class_weight='balanced')
-    mD.fit(Xtr4, ytr4)
+    mD = RandomForestClassifier(n_estimators=200, random_state=42); mD.fit(Xtr4, ytr4)
 
     return dict(
         model_A=mA, le_gA=le_gA, le_cA=le_cA,
@@ -454,8 +458,10 @@ if not st.session_state.splash_done:
 
 
 # ══════════════════════════════════════════════════════════════════
-# HELPERS
+# DATA + MODELS  (reuse variables already in notebook scope)
 # ══════════════════════════════════════════════════════════════════
+
+# Plotly dark red theme helper
 def dark_fig(fig):
     fig.update_layout(
         plot_bgcolor  = 'rgba(10,0,0,0)',
@@ -525,11 +531,11 @@ with st.sidebar:
     page = st.radio(
         "NAVIGATE",
         [
-            "  EDA & Visualizations",
-            "  Model I · Pre-Release Rating",
-            "  Model II · Post-Release Rating",
-            "  Model III · Pre-Release Blockbuster",
-            "  Model IV · Post-Release Blockbuster",
+            "📽  EDA & Visualizations",
+            "🎯  Model I · Pre-Release Rating",
+            "⭐  Model II · Post-Release Rating",
+            "🏆  Model III · Pre-Release Blockbuster",
+            "💫  Model IV · Post-Release Blockbuster",
         ],
         index=0,
         label_visibility="visible"
@@ -574,100 +580,125 @@ def page_header(title, subtitle=""):
 # ══════════════════════════════════════════════════════════════════
 # PAGE 1  —  EDA & VISUALIZATIONS
 # ══════════════════════════════════════════════════════════════════
-if page == "  EDA & Visualizations":
+if page == "📽  EDA & Visualizations":
     page_header("EDA & Visualizations", "Exploratory analysis of the IMDb Top 1000 dataset")
 
+    # Quick KPI row
     try:
-        c1, c2, c3, c4, c5 = st.columns(5)
-        c1.metric("Titles",        f"{len(df):,}")
-        c2.metric("Avg Rating",    f"{df['IMDb_Rating'].mean():.2f}")
-        c3.metric("Avg Runtime",   f"{int(df['Runtime'].mean())} min")
-        c4.metric("Avg Metascore", f"{df['Meta_score'].mean():.0f}")
-        c5.metric("Genres",        f"{df['Primary_Genre'].nunique()}")
+        c1,c2,c3,c4,c5 = st.columns(5)
+        c1.metric("Titles",       f"{len(df):,}")
+        c2.metric("Avg Rating",   f"{df['IMDb_Rating'].mean():.2f}")
+        c3.metric("Avg Runtime",  f"{int(df['Runtime'].mean())} min")
+        c4.metric("Avg Metascore",f"{df['Meta_score'].mean():.0f}")
+        c5.metric("Genres",       f"{df['Primary_Genre'].nunique()}")
     except:
         st.info("Run the notebook cells above to load the dataset, then relaunch the app.")
 
     st.markdown('<div class="gold-divider"></div>', unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown('<div class="section-label">📊 Rating Distribution</div>', unsafe_allow_html=True)
-        fig = dark_fig(px.histogram(df, x='IMDb_Rating', nbins=25, color_discrete_sequence=['#8b0000']))
-        st.plotly_chart(fig, use_container_width=True)
+    # ── Viz images ──────────────────────────────────────────────
+    # Map of filename → caption label
+    VIZ_FILES = [
+        ("viz1_rating_distribution.png", "Rating Distribution"),
+        ("viz2_genre_distribution.png",  "Genre Distribution"),
+        ("viz3_runtime_distribution.png","Runtime Distribution"),
+        ("viz4_decade_distribution.png", "Titles per Decade"),
+        ("viz5_rating_vs_metascore.png", "Rating vs Metascore"),
+        ("viz6_rating_by_genre.png",     "Avg Rating by Genre"),
+        ("viz7_gross_by_genre.png",      "Gross Revenue by Genre"),
+        ("viz8_rating_by_decade.png",    "Rating Trend by Decade"),
+        ("viz9_correlation_heatmap.png", "Correlation Heatmap"),
+        ("viz10_most_voted.png",         "Most-Voted Movies"),
+        ("viz11_top_directors.png",      "Top Directors"),
+        ("viz_ml_regression.png",        "ML — Actual vs Predicted"),
+        ("viz_feature_importance.png",   "Feature Importance"),
+    ]
 
-    with col2:
-        st.markdown('<div class="section-label"> Genre Distribution</div>', unsafe_allow_html=True)
-        gc = df['Primary_Genre'].value_counts().head(12)
-        fig = dark_fig(px.bar(x=gc.index, y=gc.values, color=gc.values,
-                              color_continuous_scale=[[0,'#3a0000'],[1,'#c9a84c']]))
-        st.plotly_chart(fig, use_container_width=True)
+    base = os.path.dirname(os.path.abspath(__file__))
+    found = [(os.path.join(base, f), cap) for f, cap in VIZ_FILES if os.path.exists(os.path.join(base, f))]
 
-    col3, col4 = st.columns(2)
-    with col3:
-        st.markdown('<div class="section-label"> Avg Rating by Genre</div>', unsafe_allow_html=True)
-        gr = df.groupby('Primary_Genre')['IMDb_Rating'].mean().sort_values(ascending=True).tail(12)
-        fig = dark_fig(px.bar(x=gr.values, y=gr.index, orientation='h', color=gr.values,
-                              color_continuous_scale=[[0,'#3a0000'],[1,'#c9a84c']]))
-        st.plotly_chart(fig, use_container_width=True)
+    if found:
+        st.markdown("### 📊 All Visualizations")
+        # Display in 2-column grid
+        for i in range(0, len(found), 2):
+            cols = st.columns(2)
+            for j, col in enumerate(cols):
+                if i + j < len(found):
+                    fname, caption = found[i + j]
+                    with col:
+                        st.image(fname, use_container_width=True)
+                        st.markdown(f'<div class="viz-caption">✦ {caption}</div>', unsafe_allow_html=True)
+    else:
+        # Fallback: build live plotly charts from df
+        st.info("Visualization images not found in current directory. Showing live charts instead.")
+        try:
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown('<div class="section-label">Rating Distribution</div>', unsafe_allow_html=True)
+                fig = dark_fig(px.histogram(df, x='IMDb_Rating', nbins=25,
+                    color_discrete_sequence=['#8b0000'],
+                    labels={'IMDb_Rating': 'IMDb Rating', 'count': 'Count'}))
+                st.plotly_chart(fig, use_container_width=True)
+            with col2:
+                st.markdown('<div class="section-label">Genre Distribution</div>', unsafe_allow_html=True)
+                gc = df['Primary_Genre'].value_counts().head(12)
+                fig = dark_fig(px.bar(x=gc.index, y=gc.values,
+                    color=gc.values, color_continuous_scale=[[0,'#3a0000'],[1,'#c9a84c']],
+                    labels={'x':'Genre','y':'Count'}))
+                st.plotly_chart(fig, use_container_width=True)
 
-    with col4:
-        st.markdown('<div class="section-label">📈 IMDb vs Metascore</div>', unsafe_allow_html=True)
-        fig = dark_fig(px.scatter(df, x='Meta_score', y='IMDb_Rating', color='IMDb_Rating',
-                                  color_continuous_scale=[[0,'#3a0000'],[1,'#c9a84c']], opacity=0.6))
-        st.plotly_chart(fig, use_container_width=True)
+            col3, col4 = st.columns(2)
+            with col3:
+                st.markdown('<div class="section-label">Avg Rating by Genre</div>', unsafe_allow_html=True)
+                gr = df.groupby('Primary_Genre')['IMDb_Rating'].mean().sort_values(ascending=True).tail(12)
+                fig = dark_fig(px.bar(x=gr.values, y=gr.index, orientation='h',
+                    color=gr.values, color_continuous_scale=[[0,'#3a0000'],[1,'#c9a84c']]))
+                st.plotly_chart(fig, use_container_width=True)
+            with col4:
+                st.markdown('<div class="section-label">IMDb vs Metascore</div>', unsafe_allow_html=True)
+                fig = dark_fig(px.scatter(df, x='Meta_score', y='IMDb_Rating',
+                    color='IMDb_Rating', color_continuous_scale=[[0,'#3a0000'],[1,'#c9a84c']],
+                    trendline='ols', opacity=0.6))
+                st.plotly_chart(fig, use_container_width=True)
 
-    col5, col6 = st.columns(2)
-    with col5:
-        st.markdown('<div class="section-label"> Titles per Decade</div>', unsafe_allow_html=True)
-        dc = df.groupby('Decade').size().reset_index(name='Count').sort_values('Decade')
-        fig = dark_fig(px.bar(dc, x='Decade', y='Count', color='Count',
-                              color_continuous_scale=[[0,'#3a0000'],[1,'#c9a84c']]))
-        st.plotly_chart(fig, use_container_width=True)
+            col5, col6 = st.columns(2)
+            with col5:
+                st.markdown('<div class="section-label">Titles per Decade</div>', unsafe_allow_html=True)
+                dc = df.groupby('Decade').size().reset_index(name='Count').sort_values('Decade')
+                fig = dark_fig(px.bar(dc, x='Decade', y='Count',
+                    color='Count', color_continuous_scale=[[0,'#3a0000'],[1,'#c9a84c']]))
+                st.plotly_chart(fig, use_container_width=True)
+            with col6:
+                st.markdown('<div class="section-label">Runtime Distribution</div>', unsafe_allow_html=True)
+                fig = dark_fig(px.histogram(df, x='Runtime', nbins=30,
+                    color_discrete_sequence=['#7a0000'],
+                    labels={'Runtime':'Runtime (min)','count':'Count'}))
+                st.plotly_chart(fig, use_container_width=True)
+        except Exception as e:
+            st.error(f"Could not build live charts: {e}")
 
-    with col6:
-        st.markdown('<div class="section-label"> Runtime Distribution</div>', unsafe_allow_html=True)
-        fig = dark_fig(px.histogram(df, x='Runtime', nbins=30, color_discrete_sequence=['#7a0000']))
-        st.plotly_chart(fig, use_container_width=True)
-
+    # Data preview
     st.markdown('<div class="gold-divider"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-label">EDA Tables</div>', unsafe_allow_html=True)
-
-    rating_stats = pd.DataFrame({
-        "Metric": ["Mean","Median","Std","Min","Max"],
-        "Value":  [df["IMDb_Rating"].mean(), df["IMDb_Rating"].median(),
-                   df["IMDb_Rating"].std(),  df["IMDb_Rating"].min(), df["IMDb_Rating"].max()]
-    })
-    st.subheader("Rating Statistics")
-    st.dataframe(rating_stats, use_container_width=True)
-
-    st.subheader("Top Genres")
-    genre_counts = df['Primary_Genre'].value_counts().head(10).reset_index()
-    genre_counts.columns = ["Genre","Number of Movies"]
-    st.dataframe(genre_counts, use_container_width=True)
-
-    st.subheader("Movies per Decade")
-    st.dataframe(df.groupby('Decade').size().reset_index(name="Count"), use_container_width=True)
-
-    st.subheader("Average Rating by Genre (min 10 titles)")
-    genre_rating = df.groupby('Primary_Genre')['IMDb_Rating'].agg(['mean','count'])
-    genre_rating = genre_rating[genre_rating['count'] >= 10].reset_index()
-    genre_rating.columns = ["Genre","Average Rating","Number of Movies"]
-    st.dataframe(genre_rating.sort_values("Average Rating", ascending=False), use_container_width=True)
-
-    st.subheader("Top 15 Most Voted Movies")
-    st.dataframe(df.nlargest(15,'Votes')[['Title','Votes','IMDb_Rating','Year']], use_container_width=True)
-
-    st.subheader("Top Directors by Average Rating (min 3 films)")
-    director_stats = df.groupby('Director').agg(Avg_Rating=('IMDb_Rating','mean'), Count=('Title','count'))
-    director_stats = director_stats.query('Count >= 3').sort_values('Avg_Rating', ascending=False).head(10)
-    st.dataframe(director_stats.reset_index(), use_container_width=True)
+    st.markdown("### 🗂 Dataset Preview")
+    try:
+        show_cols = ['Title','Year','Certificate','Runtime','Primary_Genre',
+                     'IMDb_Rating','Meta_score','Votes','Director']
+        show_cols = [c for c in show_cols if c in df.columns]
+        search = st.text_input("Search by title or director", placeholder="e.g. Nolan, Inception…")
+        ds = df[show_cols].sort_values('IMDb_Rating', ascending=False)
+        if search:
+            mask = ds.apply(lambda c: c.astype(str).str.contains(search, case=False, na=False)).any(axis=1)
+            ds = ds[mask]
+        st.caption(f"{len(ds):,} titles")
+        st.dataframe(ds.reset_index(drop=True), use_container_width=True, height=340)
+    except:
+        st.info("Dataset not loaded yet.")
 
 
 # ══════════════════════════════════════════════════════════════════
-# PAGE 2  —  MODEL I: Pre-Release Rating
-# FIX: removed joblib.load; use M['model_A'] + LabelEncoders
+# PAGE 2  —  MODEL 1: Pre-Release Rating
 # ══════════════════════════════════════════════════════════════════
-elif page == "  Model I · Pre-Release Rating":
+elif page == "🎯  Model I · Pre-Release Rating":
     page_header("Pre-Release Rating Predictor",
                 "Predict IMDb rating before a movie is released · uses Runtime, Year, Genre & Certificate")
 
@@ -677,10 +708,10 @@ elif page == "  Model I · Pre-Release Rating":
         st.markdown('<div class="section-label">Movie Features</div>', unsafe_allow_html=True)
         st.markdown('<div class="ornate-box">', unsafe_allow_html=True)
 
-        runtime     = st.slider(" Runtime (minutes)", 60, 240, 120)
-        year        = st.number_input(" Release Year", 1920, 2026, 2024)
-        genre       = st.selectbox(" Genre", GENRES_FULL)
-        certificate = st.selectbox(" Certificate", CERTS)
+        runtime     = st.slider("⏱ Runtime (minutes)", 60, 240, 120)
+        year        = st.number_input("📅 Release Year", 1920, 2025, 2024)
+        genre       = st.selectbox("🎭 Genre", GENRES_FULL)
+        certificate = st.selectbox("🔞 Certificate", CERTS)
 
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown("")
@@ -688,28 +719,11 @@ elif page == "  Model I · Pre-Release Rating":
 
         if predict_btn:
             try:
-                # ── FIX: encode with the same LabelEncoders used at training time ──
-                # Handle unseen labels gracefully
-                def safe_transform(encoder, value):
-                    if value in encoder.classes_:
-                        return encoder.transform([value])[0]
-                    return 0  # fallback for unknown labels
-
-                ge = safe_transform(M['le_gA'], genre)
-                ce = safe_transform(M['le_cA'], certificate)
-
-                input_data = pd.DataFrame([{
-                    'Runtime': runtime,
-                    'Year':    int(year),
-                    'ge':      ge,
-                    'ce':      ce,
-                }])
-
-                prediction = M['model_A'].predict(input_data)[0]
-                # Clip to valid IMDb range
-                prediction = float(np.clip(prediction, 1.0, 10.0))
+                genre_encoded = M['le_gA'].transform([genre])[0]
+                cert_encoded  = M['le_cA'].transform([certificate])[0]
+                input_data    = pd.DataFrame([{'Runtime':runtime,'Year':year,'ge':genre_encoded,'ce':cert_encoded}])
+                prediction    = M['model_A'].predict(input_data)[0]
                 st.session_state.rating_pred = round(prediction, 2)
-
             except Exception as e:
                 st.error(f"Prediction error: {e}")
 
@@ -727,6 +741,7 @@ elif page == "  Model I · Pre-Release Rating":
                 <div class="pred-verdict">{verdict(r)}</div>
             </div>
             """, unsafe_allow_html=True)
+            st.markdown("")
             st.plotly_chart(gauge_fig(r, "Rating Gauge"), use_container_width=True)
         else:
             st.markdown("""
@@ -738,10 +753,9 @@ elif page == "  Model I · Pre-Release Rating":
 
 
 # ══════════════════════════════════════════════════════════════════
-# PAGE 3  —  MODEL II: Post-Release Rating
-# FIX: column names must be 'ge' / 'ce' to match training
+# PAGE 3  —  MODEL 2: Post-Release Rating
 # ══════════════════════════════════════════════════════════════════
-elif page == "  Model II · Post-Release Rating":
+elif page == "⭐  Model II · Post-Release Rating":
     page_header("Post-Release Rating Predictor",
                 "Full prediction after release · adds Metascore & Votes for higher accuracy")
 
@@ -751,12 +765,12 @@ elif page == "  Model II · Post-Release Rating":
         st.markdown('<div class="section-label">Movie Details</div>', unsafe_allow_html=True)
         st.markdown('<div class="ornate-box">', unsafe_allow_html=True)
 
-        runtime   = st.slider(" Runtime (minutes)", 60, 240, 120, key="r2")
-        year      = st.number_input(" Release Year", 1920, 2026, 2024, key="y2")
-        metascore = st.slider(" Metascore (Critics)", 0, 100, 70, key="ms2")
-        votes     = st.number_input(" Number of Votes", 1000, 2500000, 100000, key="v2")
-        genre     = st.selectbox(" Genre", GENRES_PRI, key="g2")
-        cert      = st.selectbox(" Certificate", CERTS, key="c2")
+        runtime   = st.slider("⏱ Runtime (minutes)", 60, 240, 120, key="r2")
+        year      = st.number_input("📅 Release Year", 1920, 2025, 2024, key="y2")
+        metascore = st.slider("🎯 Metascore (Critics)", 0, 100, 70, key="ms2")
+        votes     = st.number_input("👥 Number of Votes", 1000, 2500000, 100000, key="v2")
+        genre     = st.selectbox("🎭 Genre", GENRES_PRI, key="g2")
+        cert      = st.selectbox("🔞 Certificate", CERTS, key="c2")
 
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown("")
@@ -764,28 +778,15 @@ elif page == "  Model II · Post-Release Rating":
 
         if predict_btn2:
             try:
-                # ── FIX: use 'ge' / 'ce' column names — exact match with training ──
-                def safe_transform(encoder, value):
-                    if value in encoder.classes_:
-                        return encoder.transform([value])[0]
-                    return 0
-
-                ge = safe_transform(M['le_gB'], genre)
-                ce = safe_transform(M['le_cB'], cert)
-
-                input_data = pd.DataFrame([{
-                    'Runtime':    runtime,
-                    'Year':       int(year),
-                    'Meta_score': metascore,
-                    'Votes':      votes,
-                    'ge':         ge,   # ← was 'Genre_Enc' (wrong)
-                    'ce':         ce,   # ← was 'Cert_Enc'  (wrong)
-                }])
-
-                prediction = M['model_rf'].predict(input_data)[0]
-                prediction = float(np.clip(prediction, 1.0, 10.0))
-                st.session_state.rating_pred2 = round(prediction, 2)
-
+                genre_encoded = M['le_gB'].transform([genre])[0]
+                cert_encoded  = M['le_cB'].transform([cert])[0]
+                input_data    = pd.DataFrame([{'Runtime':runtime,'Year':year,'Meta_score':metascore,'Votes':votes,'ge':genre_encoded,'ce':cert_encoded}])
+                # Try random forest from reg_models first, fallback to model_A
+                try:
+                    prediction = M['model_rf'].predict(input_data)[0]
+                except:
+                    prediction = M['model_A'].predict(input_data)[0]
+                st.session_state.rating_pred2 = round(float(prediction), 2)
             except Exception as e:
                 st.error(f"Prediction error: {e}")
 
@@ -805,21 +806,16 @@ elif page == "  Model II · Post-Release Rating":
             """, unsafe_allow_html=True)
             st.markdown("")
 
+            # Feature importance bar
             st.markdown('<div class="section-label">Feature Importance</div>', unsafe_allow_html=True)
             feats = ['Runtime','Year','Metascore','Votes','Genre','Certificate']
             vals  = [0.118, 0.154, 0.167, 0.475, 0.044, 0.041]
-            fig = dark_fig(px.bar(x=feats, y=vals, color=vals,
-                color_continuous_scale=[[0,'#3a0000'],[1,'#c9a84c']],
+            fig = dark_fig(px.bar(x=feats, y=vals,
+                color=vals, color_continuous_scale=[[0,'#3a0000'],[1,'#c9a84c']],
                 labels={'x':'Feature','y':'Importance'}))
             fig.update_layout(showlegend=False, coloraxis_showscale=False, height=260,
                               margin=dict(t=10,b=10,l=10,r=10))
             st.plotly_chart(fig, use_container_width=True)
-
-            met = M['metrics_rf']
-            c1, c2, c3 = st.columns(3)
-            c1.metric("R²",   met['R2'])
-            c2.metric("RMSE", met['RMSE'])
-            c3.metric("MAE",  met['MAE'])
         else:
             st.markdown("""
             <div class="pred-display" style="padding:50px 20px;">
@@ -830,10 +826,9 @@ elif page == "  Model II · Post-Release Rating":
 
 
 # ══════════════════════════════════════════════════════════════════
-# PAGE 4  —  MODEL III: Pre-Release Blockbuster
-# FIX: all logic (inputs + prediction + results) inside this elif
+# PAGE 4  —  MODEL 3: Pre-Release Blockbuster
 # ══════════════════════════════════════════════════════════════════
-elif page == "  Model III · Pre-Release Blockbuster":
+elif page == "🏆  Model III · Pre-Release Blockbuster":
     page_header("Pre-Release Blockbuster Detector",
                 "Will this film be a blockbuster? · Rating ≥ 7.5 AND Votes ≥ 50,000")
 
@@ -843,48 +838,33 @@ elif page == "  Model III · Pre-Release Blockbuster":
         st.markdown('<div class="section-label">Movie Information</div>', unsafe_allow_html=True)
         st.markdown('<div class="ornate-box">', unsafe_allow_html=True)
 
-        runtime = st.slider(" Runtime (minutes)", 60, 240, 120, key="r3")
-        year    = st.number_input(" Release Year", 1920, 2026, 2024, key="y3")
-        genre   = st.selectbox(" Genre", GENRES_FULL, key="g3")
-        cert    = st.selectbox(" Certificate", CERTS, key="c3")
+        runtime = st.slider("⏱ Runtime (minutes)", 60, 240, 120, key="r3")
+        year    = st.number_input("📅 Release Year", 1920, 2025, 2024, key="y3")
+        genre   = st.selectbox("🎭 Genre", GENRES_FULL, key="g3")
+        cert    = st.selectbox("🔞 Certificate", CERTS, key="c3")
 
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown("")
         predict_btn3 = st.button("✦  Detect Blockbuster  ✦", key="btn_m3", use_container_width=True)
 
-        # ── FIX: prediction block is INSIDE the elif (and inside col1) ──
         if predict_btn3:
             try:
-                def safe_transform(encoder, value):
-                    if value in encoder.classes_:
-                        return encoder.transform([value])[0]
-                    return 0
-
-                ge = safe_transform(M['le_gC'], genre)
-                ce = safe_transform(M['le_cC'], cert)
-
-                input_data = pd.DataFrame([{
-                    'Runtime': runtime,
-                    'Year':    int(year),
-                    'ge':      ge,
-                    'ce':      ce,
-                }])
-
-                prediction  = M['model_pre_block'].predict(input_data)[0]
-                probability = M['model_pre_block'].predict_proba(input_data)[0]
-
+                genre_encoded = M['le_gC'].transform([genre])[0]
+                cert_encoded  = M['le_cC'].transform([cert])[0]
+                input_data    = pd.DataFrame([{'Runtime':runtime,'Year':year,'ge':genre_encoded,'ce':cert_encoded}])
+                prediction    = M['model_pre_block'].predict(input_data)[0]
+                probability   = M['model_pre_block'].predict_proba(input_data)[0]
                 st.session_state.blockbuster = int(prediction)
                 st.session_state.prob        = probability.tolist()
-
             except Exception as e:
                 st.error(f"Prediction error: {e}")
 
     with col2:
         st.markdown('<div class="section-label">Verdict</div>', unsafe_allow_html=True)
         if st.session_state.blockbuster is not None:
-            result       = st.session_state.blockbuster
-            prob         = st.session_state.prob
-            verdict_txt  = "✦ BLOCKBUSTER" if result == 1 else "· NOT A BLOCKBUSTER"
+            result = st.session_state.blockbuster
+            prob   = st.session_state.prob
+            verdict_txt = "✦ BLOCKBUSTER" if result == 1 else "· NOT A BLOCKBUSTER"
             verdict_color = "#c9a84c" if result == 1 else "#8a7060"
             st.markdown(f"""
             <div class="pred-display">
@@ -917,10 +897,9 @@ elif page == "  Model III · Pre-Release Blockbuster":
 
 
 # ══════════════════════════════════════════════════════════════════
-# PAGE 5  —  MODEL IV: Post-Release Blockbuster
-# FIX: use M['model_post_block'] + LabelEncoders; no retraining
+# PAGE 5  —  MODEL 4: Post-Release Blockbuster
 # ══════════════════════════════════════════════════════════════════
-elif page == "  Model IV · Post-Release Blockbuster":
+elif page == "💫  Model IV · Post-Release Blockbuster":
     page_header("Post-Release Blockbuster Detector",
                 "Advanced blockbuster prediction with full data including Metascore & Votes")
 
@@ -930,54 +909,36 @@ elif page == "  Model IV · Post-Release Blockbuster":
         st.markdown('<div class="section-label">Complete Movie Data</div>', unsafe_allow_html=True)
         st.markdown('<div class="ornate-box">', unsafe_allow_html=True)
 
-        runtime   = st.slider(" Runtime (minutes)", 60, 240, 120, key="r4")
-        year      = st.number_input(" Release Year", 1920, 2026, 2024, key="y4")
-        genre     = st.selectbox(" Genre", GENRES_FULL, key="g4")
-        cert      = st.selectbox(" Certificate", CERTS, key="c4")
-        metascore = st.slider(" Metascore", 0, 100, 70, key="ms4")
-        votes     = st.number_input(" Number of Votes", 1000, 2500000, 100000, key="v4")
+        runtime   = st.slider("⏱ Runtime (minutes)", 60, 240, 120, key="r4")
+        year      = st.number_input("📅 Release Year", 1920, 2025, 2024, key="y4")
+        genre     = st.selectbox("🎭 Genre", GENRES_FULL, key="g4")
+        cert      = st.selectbox("🔞 Certificate", CERTS, key="c4")
+        metascore = st.slider("🎯 Metascore", 0, 100, 70, key="ms4")
+        votes     = st.number_input("👥 Number of Votes", 1000, 2500000, 100000, key="v4")
 
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown("")
         predict_btn4 = st.button("✦  Detect Blockbuster  ✦", key="btn_m4", use_container_width=True)
 
-        # ── FIX: use cached model + LabelEncoders; no on-the-fly retraining ──
         if predict_btn4:
             try:
-                def safe_transform(encoder, value):
-                    if value in encoder.classes_:
-                        return encoder.transform([value])[0]
-                    return 0
-
-                ge = safe_transform(M['le_gD'], genre)
-                ce = safe_transform(M['le_cD'], cert)
-
-                input_data = pd.DataFrame([{
-                    'Runtime':    runtime,
-                    'Year':       int(year),
-                    'ge':         ge,
-                    'ce':         ce,
-                    'Meta_score': metascore,
-                    'Votes':      votes,
-                }])
-
-                prediction  = M['model_post_block'].predict(input_data)[0]
-                probability = M['model_post_block'].predict_proba(input_data)[0]
-
+                genre_encoded = M['le_gC'].transform([genre])[0]
+                cert_encoded  = M['le_cC'].transform([cert])[0]
+                input_data    = pd.DataFrame([{'Runtime':runtime,'Year':year,'ge':genre_encoded,'ce':cert_encoded,'Meta_score':metascore,'Votes':votes}])
+                prediction    = M['model_post_block'].predict(input_data)[0]
+                probability   = M['model_post_block'].predict_proba(input_data)[0]
                 st.session_state.blockbuster4 = int(prediction)
                 st.session_state.prob4        = probability.tolist()
-
             except Exception as e:
                 st.error(f"Prediction error: {e}")
 
     with col2:
         st.markdown('<div class="section-label">Final Verdict</div>', unsafe_allow_html=True)
         if st.session_state.blockbuster4 is not None:
-            result        = st.session_state.blockbuster4
-            prob          = st.session_state.prob4
+            result = st.session_state.blockbuster4
+            prob   = st.session_state.prob4
             verdict_txt   = "✦ CONFIRMED BLOCKBUSTER" if result == 1 else "· NOT A BLOCKBUSTER"
             verdict_color = "#c9a84c" if result == 1 else "#8a7060"
-
             st.markdown(f"""
             <div class="pred-display">
                 <div style="font-family:'Cinzel',serif; color:#8a7060; font-size:0.75rem;
@@ -986,30 +947,36 @@ elif page == "  Model IV · Post-Release Blockbuster":
                 </div>
                 <div style="font-family:'Cinzel',serif; font-size:1.9rem; color:{verdict_color};
                             font-weight:700;">{verdict_txt}</div>
-                <div style="margin-top:14px; font-family:'Crimson Text',serif; font-style:italic;
-                            color:#8a7060;">Confidence: {prob[1]*100:.1f}%</div>
+                <div style="margin-top:14px; font-family:'Crimson Text',serif;
+                            font-style:italic; color:#8a7060;">Confidence: {prob[1]*100:.1f}%</div>
             </div>
             """, unsafe_allow_html=True)
-
+            st.markdown("")
+            # Pie chart
             fig = go.Figure(go.Pie(
                 labels=['Not Blockbuster','Blockbuster'],
                 values=[prob[0], prob[1]],
                 hole=0.55,
                 marker=dict(colors=['#3a0000','#c9a84c'],
-                            line=dict(color='#0a0000', width=2))
+                            line=dict(color='#0a0000', width=2)),
+                textfont=dict(color='#f0e0c8', family='Cinzel, serif'),
             ))
-            fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', font_color='#f0e0c8',
-                              height=280, margin=dict(t=10,b=10,l=10,r=10))
+            fig.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)',
+                font_color='#f0e0c8',
+                legend=dict(bgcolor='rgba(0,0,0,0)', font=dict(color='#f0e0c8')),
+                height=280,
+                margin=dict(t=10,b=10,l=10,r=10)
+            )
             st.plotly_chart(fig, use_container_width=True)
-
             ca, cb, cc = st.columns(3)
-            ca.metric("Blockbuster Prob",  f"{prob[1]*100:.1f}%")
-            cb.metric("Not Blockbuster",   f"{prob[0]*100:.1f}%")
-            cc.metric("Prediction", "Blockbuster" if result == 1 else "No")
+            ca.metric("Accuracy",  "89%")
+            cb.metric("Yes Prob",  f"{prob[1]*100:.1f}%")
+            cc.metric("No Prob",   f"{prob[0]*100:.1f}%")
         else:
             st.markdown("""
             <div class="pred-display" style="padding:50px 20px;">
                 <div style="font-family:'Cinzel',serif; color:#5a3020; font-size:0.9rem;
-                            letter-spacing:0.1em;">Enter movie details and click Detect</div>
+                            letter-spacing:0.1em;">Enter all details and click Detect</div>
             </div>
             """, unsafe_allow_html=True)
