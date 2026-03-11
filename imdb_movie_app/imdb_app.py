@@ -135,7 +135,7 @@ CERTS        = ["G","PG","PG-13","R","NC-17","Not Rated"]
 # ── Page config ──────────────────────────────────────────────────
 st.set_page_config(
     page_title="IMDb Movie Predictor",
-    page_icon="🎬",
+    page_icon="📽",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -529,11 +529,11 @@ with st.sidebar:
     page = st.radio(
         "NAVIGATE",
         [
-            "📽  EDA & Visualizations",
-            "🎯  Model I · Pre-Release Rating",
-            "⭐  Model II · Post-Release Rating",
-            "🏆  Model III · Pre-Release Blockbuster",
-            "💫  Model IV · Post-Release Blockbuster",
+            "  EDA & Visualizations",
+            "  Model I · Pre-Release Rating",
+            "  Model II · Post-Release Rating",
+            "  Model III · Pre-Release Blockbuster",
+            "  Model IV · Post-Release Blockbuster",
         ],
         index=0,
         label_visibility="visible"
@@ -578,7 +578,7 @@ def page_header(title, subtitle=""):
 # ══════════════════════════════════════════════════════════════════
 # PAGE 1  —  EDA & VISUALIZATIONS
 # ══════════════════════════════════════════════════════════════════
-if page == "📽  EDA & Visualizations":
+if page == "  EDA & Visualizations":
     page_header("EDA & Visualizations", "Exploratory analysis of the IMDb Top 1000 dataset")
 
     # Quick KPI row
@@ -616,7 +616,7 @@ if page == "📽  EDA & Visualizations":
     found = [(os.path.join(base, f), cap) for f, cap in VIZ_FILES if os.path.exists(os.path.join(base, f))]
 
     if found:
-        st.markdown("### 📊 All Visualizations")
+        st.markdown("###  All Visualizations")
         # Display in 2-column grid
         for i in range(0, len(found), 2):
             cols = st.columns(2)
@@ -677,7 +677,7 @@ if page == "📽  EDA & Visualizations":
 
     # Data preview
     st.markdown('<div class="gold-divider"></div>', unsafe_allow_html=True)
-    st.markdown("### 🗂 Dataset Preview")
+    st.markdown("###  Dataset Preview")
     try:
         show_cols = ['Title','Year','Certificate','Runtime','Primary_Genre',
                      'IMDb_Rating','Meta_score','Votes','Director']
@@ -696,7 +696,7 @@ if page == "📽  EDA & Visualizations":
 # ══════════════════════════════════════════════════════════════════
 # PAGE 2  —  MODEL 1: Pre-Release Rating
 # ══════════════════════════════════════════════════════════════════
-elif page == "🎯  Model I · Pre-Release Rating":
+elif page == "  Model I · Pre-Release Rating":
     page_header("Pre-Release Rating Predictor",
                 "Predict IMDb rating before a movie is released · uses Runtime, Year, Genre & Certificate")
 
@@ -706,10 +706,10 @@ elif page == "🎯  Model I · Pre-Release Rating":
         st.markdown('<div class="section-label">Movie Features</div>', unsafe_allow_html=True)
         st.markdown('<div class="ornate-box">', unsafe_allow_html=True)
 
-        runtime     = st.slider("⏱ Runtime (minutes)", 60, 240, 120)
-        year        = st.number_input("📅 Release Year", 1920, 2025, 2024)
-        genre       = st.selectbox("🎭 Genre", GENRES_FULL)
-        certificate = st.selectbox("🔞 Certificate", CERTS)
+        runtime     = st.slider(" Runtime (minutes)", 60, 240, 120)
+        year        = st.number_input(" Release Year", 1920, 2027, 2024)
+        genre       = st.selectbox(" Genre", GENRES_FULL)
+        certificate = st.selectbox(" Certificate", CERTS)
 
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown("")
@@ -753,7 +753,7 @@ elif page == "🎯  Model I · Pre-Release Rating":
 # ══════════════════════════════════════════════════════════════════
 # PAGE 3  —  MODEL 2: Post-Release Rating
 # ══════════════════════════════════════════════════════════════════
-elif page == "⭐  Model II · Post-Release Rating":
+elif page == "  Model II · Post-Release Rating":
     page_header("Post-Release Rating Predictor",
                 "Full prediction after release · adds Metascore & Votes for higher accuracy")
 
@@ -763,12 +763,12 @@ elif page == "⭐  Model II · Post-Release Rating":
         st.markdown('<div class="section-label">Movie Details</div>', unsafe_allow_html=True)
         st.markdown('<div class="ornate-box">', unsafe_allow_html=True)
 
-        runtime   = st.slider("⏱ Runtime (minutes)", 60, 240, 120, key="r2")
-        year      = st.number_input("📅 Release Year", 1920, 2025, 2024, key="y2")
-        metascore = st.slider("🎯 Metascore (Critics)", 0, 100, 70, key="ms2")
-        votes     = st.number_input("👥 Number of Votes", 1000, 2500000, 100000, key="v2")
-        genre     = st.selectbox("🎭 Genre", GENRES_PRI, key="g2")
-        cert      = st.selectbox("🔞 Certificate", CERTS, key="c2")
+        runtime   = st.slider(" Runtime (minutes)", 60, 240, 120, key="r2")
+        year      = st.number_input(" Release Year", 1920, 2027, 2024, key="y2")
+        metascore = st.slider(" Metascore (Critics)", 0, 100, 70, key="ms2")
+        votes     = st.number_input(" Number of Votes", 1000, 2500000, 100000, key="v2")
+        genre     = st.selectbox(" Genre", GENRES_PRI, key="g2")
+        cert      = st.selectbox(" Certificate", CERTS, key="c2")
 
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown("")
@@ -826,7 +826,7 @@ elif page == "⭐  Model II · Post-Release Rating":
 # ══════════════════════════════════════════════════════════════════
 # PAGE 4  —  MODEL 3: Pre-Release Blockbuster
 # ══════════════════════════════════════════════════════════════════
-elif page == "🏆  Model III · Pre-Release Blockbuster":
+elif page == "  Model III · Pre-Release Blockbuster":
     page_header("Pre-Release Blockbuster Detector",
                 "Will this film be a blockbuster? · Rating ≥ 7.5 AND Votes ≥ 50,000")
 
@@ -836,10 +836,10 @@ elif page == "🏆  Model III · Pre-Release Blockbuster":
         st.markdown('<div class="section-label">Movie Information</div>', unsafe_allow_html=True)
         st.markdown('<div class="ornate-box">', unsafe_allow_html=True)
 
-        runtime = st.slider("⏱ Runtime (minutes)", 60, 240, 120, key="r3")
-        year    = st.number_input("📅 Release Year", 1920, 2025, 2024, key="y3")
-        genre   = st.selectbox("🎭 Genre", GENRES_FULL, key="g3")
-        cert    = st.selectbox("🔞 Certificate", CERTS, key="c3")
+        runtime = st.slider(" Runtime (minutes)", 60, 240, 120, key="r3")
+        year    = st.number_input(" Release Year", 1920, 2027, 2024, key="y3")
+        genre   = st.selectbox(" Genre", GENRES_FULL, key="g3")
+        cert    = st.selectbox(" Certificate", CERTS, key="c3")
 
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown("")
@@ -897,7 +897,7 @@ elif page == "🏆  Model III · Pre-Release Blockbuster":
 # ══════════════════════════════════════════════════════════════════
 # PAGE 5  —  MODEL 4: Post-Release Blockbuster
 # ══════════════════════════════════════════════════════════════════
-elif page == "💫  Model IV · Post-Release Blockbuster":
+elif page == "  Model IV · Post-Release Blockbuster":
     page_header("Post-Release Blockbuster Detector",
                 "Advanced blockbuster prediction with full data including Metascore & Votes")
 
@@ -907,12 +907,12 @@ elif page == "💫  Model IV · Post-Release Blockbuster":
         st.markdown('<div class="section-label">Complete Movie Data</div>', unsafe_allow_html=True)
         st.markdown('<div class="ornate-box">', unsafe_allow_html=True)
 
-        runtime   = st.slider("⏱ Runtime (minutes)", 60, 240, 120, key="r4")
-        year      = st.number_input("📅 Release Year", 1920, 2025, 2024, key="y4")
-        genre     = st.selectbox("🎭 Genre", GENRES_FULL, key="g4")
-        cert      = st.selectbox("🔞 Certificate", CERTS, key="c4")
-        metascore = st.slider("🎯 Metascore", 0, 100, 70, key="ms4")
-        votes     = st.number_input("👥 Number of Votes", 1000, 2500000, 100000, key="v4")
+        runtime   = st.slider(" Runtime (minutes)", 60, 240, 120, key="r4")
+        year      = st.number_input(" Release Year", 1920, 2027, 2024, key="y4")
+        genre     = st.selectbox(" Genre", GENRES_FULL, key="g4")
+        cert      = st.selectbox(" Certificate", CERTS, key="c4")
+        metascore = st.slider(" Metascore", 0, 100, 70, key="ms4")
+        votes     = st.number_input(" Number of Votes", 1000, 2500000, 100000, key="v4")
 
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown("")
@@ -978,4 +978,5 @@ elif page == "💫  Model IV · Post-Release Blockbuster":
                             letter-spacing:0.1em;">Enter all details and click Detect</div>
             </div>
             """, unsafe_allow_html=True)
+
 
