@@ -1,5 +1,3 @@
-b app · PY
-Copy
 
 import streamlit as st
 import pandas as pd
@@ -980,3 +978,4 @@ elif page == "💫  Model IV · Post-Release Blockbuster":
                             letter-spacing:0.1em;">Enter all details and click Detect</div>
             </div>
             """, unsafe_allow_html=True)
+
